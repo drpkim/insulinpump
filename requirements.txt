@@ -1,0 +1,2 @@
+hydralit-components==1.0.10
+streamlit==1.15.1
