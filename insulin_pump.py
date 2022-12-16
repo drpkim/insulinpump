@@ -199,6 +199,15 @@ with quick_bolus:
         
     active_insulin_amount = round((active_insulin * 0.32), 1)
     suggest_correction = round((correct_insulin - active_insulin_amount), 1)
+    
+    total_bolus = round((insulin_carbs+suggest_correction), 1)
+    
+    if total_bolus <= 0:
+        total_bolus = "N/A"
+    else:
+        total_bolus
+        
+        
     col1, col2, col3 = st.columns(3)
     with col1:
         #st.metric(label="Recommended Correction (units)", value=suggest_correction)
