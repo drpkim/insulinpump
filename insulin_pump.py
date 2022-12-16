@@ -214,7 +214,7 @@ with quick_bolus:
         hc.info_card(title="Recommended Correction (units)", content=suggest_correction, theme_override=theme_neutral, title_text_size= "1rem", content_text_size="2rem")
     with col3:
         #st.metric(label="**Total Insulin (units)**", value=round((insulin_carbs+suggest_correction), 1))
-        hc.info_card(title="Total Insulin Required (units)", content=round((insulin_carbs+suggest_correction), 1), theme_override=theme_good, title_text_size= "1rem", content_text_size="2rem")
+        hc.info_card(title="Total Insulin Required (units)", content=total_bolus, theme_override=theme_good, title_text_size= "1rem", content_text_size="2rem")
     with col2:
         #st.metric(label="Food Bolus Insulin (units)", value=insulin_carbs)
         hc.info_card(title="Food Bolus Insulin (units)", content=insulin_carbs, theme_override=theme_ok, title_text_size= "1rem", content_text_size="2rem")
