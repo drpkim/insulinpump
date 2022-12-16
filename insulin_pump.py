@@ -204,8 +204,7 @@ with quick_bolus:
     
     if total_bolus <= 0:
         total_bolus = "N/A"
-    else:
-        total_bolus
+ 
         
         
     col1, col2, col3 = st.columns(3)
