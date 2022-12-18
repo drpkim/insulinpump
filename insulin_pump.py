@@ -4,8 +4,6 @@ from datetime import date
 import datetime
 from dateutil.relativedelta import relativedelta
 
-
-
 #apply customized info card with
 theme_neutral = {'bgcolor': '#f9f9f9','title_color': 'orange','content_color': 'orange', 'icon_color': 'orange', 'icon': 'fa fa-star-of-life'}
 theme_good = {'bgcolor': '#EFF8F7','title_color': 'green','content_color': 'green','icon_color': 'green', 'icon': 'fa fa-syringe'}
@@ -19,7 +17,7 @@ st.write('NOTE: intended for professional usage only')
 wt_carb_ratio = 0
 m1_carb_ratio = 0
 isf = 0
-
+basal_rate = 0 
 
 #determine total insulin dosage, 24h rate, and fixed meal bolus amount
 def dosage (tdd, rate=bool, fixed=bool):
@@ -49,6 +47,15 @@ def correction_factor (tdd):
     return isf, st.error(f"Senitivity Factor 1700 Rule: **{isf} mg/dL/unit insulin**")
 
 insulin_pump, quick_bolus, summary = st.tabs(['Calculate Inital Pump Settings', 'Quick Bolus Calculator', 'Summary Sheet'])
+
+def active_insulin_amount (basal_rate = 0.0, active_time = 0):
+    iob = 0 
+    for a in range (1, active_time+1):
+        iob += basal_rate * (a/active_time)
+    return iob 
+
+
+
 #INSULIN PUMP CALCULATION TAB
 with insulin_pump:
     st.number_input(label="Prepump Total Daily Dose", key='pre_pump', min_value=0, max_value=500, step=1)
@@ -68,7 +75,8 @@ with insulin_pump:
         st.success(f"Method 1 using pre-pump TDD: **{pump_tdd} units/day**") 
         st.caption("**About Method 1:**  tDD = pre-pump TDD x 0.75; Reduce Pre-Pump by 25% or less if pre-pump TDD >70%")
         "#### Total Basal Daily Dosage "
-        st.warning(f"**{dosage(pump_tdd, False, False)} units/day (total daily basal insulin)**")
+        basal_rate = dosage(pump_tdd, False, False)
+        st.warning(f"**{basal_rate} units/day (total daily basal insulin)**")
         st.caption("Divide Insulin Pump TDD in half using pre-pump TDD")
 
         '#### Starting Hourly Basal Rate'
@@ -89,7 +97,8 @@ with insulin_pump:
         st.warning(f"**{dosage(wt_tdd, False, False)} units/day (total daily basal insulin)**")
         st.caption("Divide Insulin Pump TDD in half using weight based")
         '#### Starting Hourly Basal Rate'
-        st.warning(f"**{dosage(wt_tdd, True, False)} units/hr**")
+        basal_rate = dosage(wt_tdd, True, False)
+        st.warning(f"**{basal_rate} units/hr**")
         st.caption("Divide Total Insulin Pump Basal Requirement by 24 hours")
         '#### Carbohydrate Ratio/Meal Bolus'
         carb_ratio(wt_tdd)
@@ -112,7 +121,8 @@ with insulin_pump:
         st.warning(f"**{dosage(avg_tdd, False, False)} units/day (total daily basal insulin)**")
         st.caption("Divide half using average pre-pump TDD and weight based")
         '#### Starting Hourly Basal Rate'
-        st.warning(f"**{dosage(avg_tdd, True, False)} units/hr**") 
+        basal_rate = dosage(avg_tdd, True, False)
+        st.warning(f"**{basal_rate} units/hr**") 
         st.caption("Divide Total Insulin Pump Basal Requirement by 24 hours")
         '#### Carbohydrate Ratio/Meal Bolus'
         carb_ratio(avg_tdd)
@@ -169,7 +179,7 @@ with quick_bolus:
     active_insulin = st.selectbox("**Select Active Insulin Time**", options=(3, 4, 5))
     with st.expander(label="**Suggested Active Insulin Time**"):
         col1, col2, col3 = st.columns(3)
-        st.caption("Note: Active Insulin is the amount of insulin remaining in the body from previous boluses that continues to have a pharmacodynamic effect and the potential to lower glucose levels. Active Insulin Time is the length of time the Bolus Wizard® calculator tracks active insulin following a bolus dose. Can be set from two to eight hours.")
+        st.caption("Note: Active Insulin is the amount of insulin remaining in the body from previous boluses that continues to have a pharmacodynamic effect and the potential to lower glucose levels. Active Insulin Time is the length of time the Bolus Wizard® calculator tracks active insulin following a bolus dose. Can be set from two to eight hours.\n\nInsulin On Board (IOB) = Σ (Basal rate * (n+i/active time)\n\nExample for 4 hours active insulin time with 1u/hr basal: IOB = 1x1/4 + 1x2/4+ 1x3/4 + 1x4/4 = 2.5 units IOB")
         with col1:
             st.write ('### Adults')
             st.write("4-5 hours")
@@ -197,8 +207,9 @@ with quick_bolus:
         correction_carbs = glucose_read - target_bg
         correct_insulin = round(correction_carbs/qisf, 1)
         
-    active_insulin_amount = round((active_insulin * 0.32), 1)
-    suggest_correction = round((correct_insulin - active_insulin_amount), 1)
+    iob = round(active_insulin_amount(basal_rate=basal_rate, active_time=active_insulin), 1)
+    
+    suggest_correction = round((correct_insulin - iob), 1)
     
     total_bolus = round((insulin_carbs+suggest_correction), 1)
     
@@ -233,8 +244,8 @@ with quick_bolus:
         (60 - 100) ÷ 45 = - 0.9 units
     
     Important points:
-    • Active insulin units = Active Insulin Time * 0.32 units/hr 
-    • Suggested correction insulin = Active insulin units - correction units
+    • IOB must be defined and accounted into correction inuslin units 
+    • Recommended correction insulin = Active insulin units - correction units
 
     Food Bolus Amount:
     • Food Bolus unit = Food (g) * Carb ratio (u/g)
@@ -274,10 +285,8 @@ with summary:
     with col2:
         last = st.text_input ("Last Name")
         mr_num = st.text_input("MR#")
-    
     st.code(f"""
-    Name: {' '.join([first, last])}\nDOB: {dob}\nAge: {age(dob)}\nMR: {mr_num}\n\n#Total Daily Dose\nTDD wt based: {wt_tdd} units\nTDD pre-pump based {pump_tdd} units\nTDD avg based: {avg_tdd} units\n\n#Basal Dosage and 24h-Rate\nUsing pre-pump TDD: {dosage(pump_tdd, False, False)} units/day or {dosage(pump_tdd, True, False)} u/hr\nUsing weight based TDD: {dosage(wt_tdd, False, False)} units/day or {dosage(wt_tdd, True, False)} u/hr\nUsing average TDD: {dosage(avg_tdd, False, False)} units/day or {dosage(avg_tdd, True, False)} u/hr\n\n#Carb Ratio\nCarb ratio 450 method: {m1_carb_ratio} g/unit\nCarb ratio based on wt: {wt_carb_ratio} g/unit\n\n#Correction Factor\n1700 Rule: {isf} mg/dL/unit\n\n#Active Insulin and Time\nAmount: {active_insulin_amount} units\nTime: {active_insulin} hrs
-    
+    Name: {' '.join([first, last])}\nDOB: {dob}\nAge: {age(dob)}\nMR: {mr_num}\n\n#Total Daily Dose\nTDD wt based: {wt_tdd} units\nTDD pre-pump based {pump_tdd} units\nTDD avg based: {avg_tdd} units\n\n#Basal Dosage and 24h-Rate\nUsing pre-pump TDD: {dosage(pump_tdd, False, False)} units/day or {dosage(pump_tdd, True, False)} u/hr\nUsing weight based TDD: {dosage(wt_tdd, False, False)} units/day or {dosage(wt_tdd, True, False)} u/hr\nUsing average TDD: {dosage(avg_tdd, False, False)} units/day or {dosage(avg_tdd, True, False)} u/hr\n\n#Carb Ratio\nCarb ratio 450 method: {m1_carb_ratio} g/unit\nCarb ratio based on wt: {wt_carb_ratio} g/unit\n\n#Correction Factor\n1700 Rule: {isf} mg/dL/unit\n\n#Active Insulin and Time\nAmount: {iob} units\nTime: {active_insulin} hrs
     """)
 
  
