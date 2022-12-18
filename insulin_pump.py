@@ -244,7 +244,7 @@ with quick_bolus:
         (60 - 100) ÷ 45 = - 0.9 units
     
     Important points:
-    • IOB must be defined and accounted into correction inuslin units 
+    • IOB must be defined and accounted into correction insulin units 
     • Recommended correction insulin = Active insulin units - correction units
 
     Food Bolus Amount:
